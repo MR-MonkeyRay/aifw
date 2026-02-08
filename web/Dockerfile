@@ -14,10 +14,11 @@ COPY web/requirements.txt /opt/aifw/web/requirements.txt
 COPY cli/python/requirements.txt /opt/aifw/cli/python/requirements.txt
 COPY libs/aifw-py/requirements.txt /opt/aifw/libs/aifw-py/requirements.txt
 
-# System deps (git for fetching model assets) and Python deps
+# System deps and Python deps
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git ca-certificates && \
+    apt-get install -y --no-install-recommends git ca-certificates curl && \
     rm -rf /var/lib/apt/lists/* && \
+    useradd -r -s /bin/false aifw && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r /opt/aifw/web/requirements.txt && \
     pip install --no-cache-dir -r /opt/aifw/cli/python/requirements.txt && \
@@ -33,40 +34,40 @@ COPY web/static/ /opt/aifw/web/static/
 COPY cli/python /opt/aifw/cli/python
 COPY libs/aifw-py /opt/aifw/libs/aifw-py
 
-# Copy assets metadata and (optionally) pre-fetched models / wasm if present
-COPY assets/*.yaml assets/*.json /opt/aifw/assets/
+# Copy assets metadata (whitelist - exclude sensitive files)
+COPY assets/aifw.yaml assets/oneaifw_assets_hashes.json /opt/aifw/assets/
 
-# If OneAIFW-Assets repo is present in build context, copy its models;
-# otherwise clone from GitHub (public repo) at build time.
+# Clone models from GitHub (pinned version for reproducibility)
 RUN set -e; \
     mkdir -p "${AIFW_MODELS_BASE}"; \
     if [ -d "/opt/aifw/OneAIFW-Assets/models" ]; then \
       cp -R /opt/aifw/OneAIFW-Assets/models/* "${AIFW_MODELS_BASE}/"; \
     else \
-      git clone --depth 1 https://github.com/funstory-ai/OneAIFW-Assets.git /opt/aifw-assets && \
+      git clone --depth 1 --branch v0.3.1 https://github.com/funstory-ai/OneAIFW-Assets.git /opt/aifw-assets && \
       cp -R /opt/aifw-assets/models/* "${AIFW_MODELS_BASE}/" && \
       rm -rf /opt/aifw-assets; \
     fi
 
 # Copy prebuilt Zig core shared library if provided by CI (zig-out/lib)
-# Expected to contain liboneaifw_core.so built for Linux.
 COPY zig-out/lib /opt/aifw/zig-out/lib
 
-# Ensure runtime dirs; no API keys baked in image
+# Create runtime dirs with minimal permissions
 RUN mkdir -p ${AIFW_WORK_DIR} /var/log/aifw && \
-    chmod -R 777 ${AIFW_WORK_DIR} /var/log/aifw
+    chown -R aifw:aifw ${AIFW_WORK_DIR} /var/log/aifw /opt/aifw && \
+    chmod -R 750 ${AIFW_WORK_DIR} /var/log/aifw
 
 # Entrypoint: prepare work dir and default config if missing
-RUN printf '#!/bin/sh\nset -e\n: "${AIFW_WORK_DIR:=/data/aifw}"\nmkdir -p "${AIFW_WORK_DIR}"\nif [ ! -f "${AIFW_WORK_DIR}/aifw.yaml" ] && [ -f "/opt/aifw/assets/aifw.yaml" ]; then\n  cp /opt/aifw/assets/aifw.yaml "${AIFW_WORK_DIR}/aifw.yaml";\nfi\nexport PYTHONPATH="/opt/aifw:${PYTHONPATH:-}"\nexec "$@"\n' > /usr/local/bin/aifw-entrypoint.sh && \
+RUN printf '#!/bin/sh\nset -e\n: "${AIFW_WORK_DIR:=/data/aifw}"\nif [ ! -f "${AIFW_WORK_DIR}/aifw.yaml" ] && [ -f "/opt/aifw/assets/aifw.yaml" ]; then\n  cp /opt/aifw/assets/aifw.yaml "${AIFW_WORK_DIR}/aifw.yaml";\nfi\nexport PYTHONPATH="/opt/aifw:${PYTHONPATH:-}"\nexec "$@"\n' > /usr/local/bin/aifw-entrypoint.sh && \
     chmod +x /usr/local/bin/aifw-entrypoint.sh
 
-# Set a sane default; append happens in entrypoint using ${PYTHONPATH:-}
 ENV PYTHONPATH=/opt/aifw
-
-# Expose web application port
 EXPOSE 5001
 
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:5001/api/health || exit 1
+
+USER aifw
 ENTRYPOINT ["/usr/local/bin/aifw-entrypoint.sh"]
-# Default: run the web application
+
 WORKDIR /opt/aifw/web
-CMD ["./run.py"]
+CMD ["python", "app.py"]

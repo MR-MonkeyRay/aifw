@@ -1,8 +1,47 @@
+# IDE and editor
 .vscode/
-env/
-.venv
-.DS_Store
-__pycache__
-
-*~
+.idea/
 *.swp
+*~
+
+# Python
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in image)
+docs/
+*.md
+!README.md
+
+# Tests (not needed in production image)
+tests/
+
+# Development files
+.env
+.env.*
+*.log
+
+# Sensitive files - NEVER include in image
+**/local-fake-llm-apikey.json
+**/*apikey*.json
+**/*secret*.json
+
+# Build artifacts that should be explicitly provided
+# zig-out/  # Commented: CI provides this explicitly
+
+# Browser extension (not needed for backend)
+browser_extension/
