@@ -21,3 +21,4 @@ tests/transformer-js/public
 apps/webapp/public
 browser_extension/vendor
 
+.ace-tool/

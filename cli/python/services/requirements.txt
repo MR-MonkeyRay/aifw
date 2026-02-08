@@ -5,3 +5,4 @@ python-multipart>=0.0.5
 socksio>=1.0.0
 litellm>=1.45.0
 langdetect>=1.0.9
+httpx>=0.27.0
