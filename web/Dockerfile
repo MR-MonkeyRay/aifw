@@ -44,6 +44,8 @@ LABEL org.opencontainers.image.title="OneAIFW Web" \
       org.opencontainers.image.vendor="FunStory AI" \
       org.opencontainers.image.licenses="MIT"
 
+ARG ASSETS_REF=main
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AIFW_WORK_DIR=/data/aifw \
@@ -75,13 +77,13 @@ COPY libs/aifw-py /opt/aifw/libs/aifw-py
 # Copy assets metadata (whitelist - exclude sensitive files)
 COPY assets/aifw.yaml assets/oneaifw_assets_hashes.json /opt/aifw/assets/
 
-# Clone models from GitHub (pinned version for reproducibility)
+# Clone models from GitHub (configurable ref, defaults to main)
 RUN set -e; \
     mkdir -p "${AIFW_MODELS_BASE}"; \
     if [ -d "/opt/aifw/OneAIFW-Assets/models" ]; then \
       cp -R /opt/aifw/OneAIFW-Assets/models/* "${AIFW_MODELS_BASE}/"; \
     else \
-      git clone --depth 1 --branch v0.3.1 https://github.com/funstory-ai/OneAIFW-Assets.git /opt/aifw-assets && \
+      git clone --depth 1 --branch "${ASSETS_REF}" https://github.com/funstory-ai/OneAIFW-Assets.git /opt/aifw-assets && \
       cp -R /opt/aifw-assets/models/* "${AIFW_MODELS_BASE}/" && \
       rm -rf /opt/aifw-assets; \
     fi
