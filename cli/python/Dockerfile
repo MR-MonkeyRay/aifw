@@ -1,28 +1,64 @@
+# syntax=docker/dockerfile:1
 ARG BASE_IMAGE=python:3.13-slim
-FROM ${BASE_IMAGE}
+
+# ============================================================================
+# Builder stage: install dependencies with uv (10-100x faster than pip)
+# ============================================================================
+FROM ${BASE_IMAGE} AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    AIFW_WORK_DIR=/data/aifw \
-    XDG_CONFIG_HOME=/data/config \
-    AIFW_MODELS_BASE=/opt/aifw/ner-models
+    PYTHONUNBUFFERED=1
 
 WORKDIR /opt/aifw
+
+# Install uv (fast Python package installer)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/root/.local/bin:/root/.cargo/bin:${PATH}"
 
 # Copy requirements first for better cache
 COPY cli/python/requirements.txt /opt/aifw/cli/python/requirements.txt
 COPY cli/python/services/requirements.txt /opt/aifw/cli/python/services/requirements.txt
 COPY libs/aifw-py/requirements.txt /opt/aifw/libs/aifw-py/requirements.txt
 
-# System deps and Python deps
+# Install dependencies with uv into /opt/venv
+RUN uv venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    uv pip install --no-cache -r /opt/aifw/cli/python/requirements.txt && \
+    uv pip install --no-cache -r /opt/aifw/libs/aifw-py/requirements.txt
+
+# ============================================================================
+# Runtime stage: minimal image with only runtime dependencies
+# ============================================================================
+FROM ${BASE_IMAGE} AS runtime
+
+# OCI labels for metadata
+LABEL org.opencontainers.image.title="OneAIFW CLI" \
+      org.opencontainers.image.description="AI Framework CLI with PII masking and multi-provider support" \
+      org.opencontainers.image.source="https://github.com/funstory-ai/aifw" \
+      org.opencontainers.image.vendor="FunStory AI" \
+      org.opencontainers.image.licenses="MIT"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    AIFW_WORK_DIR=/data/aifw \
+    XDG_CONFIG_HOME=/data/config \
+    AIFW_MODELS_BASE=/opt/aifw/ner-models \
+    PATH="/opt/venv/bin:${PATH}"
+
+WORKDIR /opt/aifw
+
+# System deps (git for model cloning)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git ca-certificates curl && \
     rm -rf /var/lib/apt/lists/* && \
-    useradd -r -s /bin/false aifw && \
-    pip install --upgrade pip && \
-    pip install --no-cache-dir -r /opt/aifw/cli/python/requirements.txt && \
-    pip install --no-cache-dir -r /opt/aifw/libs/aifw-py/requirements.txt && \
-    python -m pip cache purge || true
+    useradd -r -s /bin/false aifw
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy CLI / services code and aifw-py library into image
 COPY cli/python /opt/aifw/cli/python
@@ -43,6 +79,7 @@ RUN set -e; \
     fi
 
 # Copy prebuilt Zig core shared library if provided by CI (zig-out/lib)
+# Note: zig-out/lib must exist in build context (CI provides it, local builds need placeholder)
 COPY zig-out/lib /opt/aifw/zig-out/lib
 
 # Create runtime dirs with minimal permissions
@@ -68,6 +105,3 @@ ENTRYPOINT ["/usr/local/bin/aifw-entrypoint.sh"]
 
 WORKDIR /opt/aifw/cli/python
 CMD ["python", "-m", "uvicorn", "services.app.main:app", "--host", "0.0.0.0", "--port", "8844"]
-
-
-

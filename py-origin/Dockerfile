@@ -63,4 +63,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 USER aifw
 ENTRYPOINT ["/usr/local/bin/aifw-entrypoint.sh"]
 
-CMD ["/bin/bash"]
+WORKDIR /opt/aifw
+CMD ["python", "-m", "uvicorn", "services.app.main:app", "--host", "0.0.0.0", "--port", "8844"]

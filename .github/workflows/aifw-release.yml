@@ -173,7 +173,6 @@ jobs:
       contents: read
       packages: write
     env:
-      DO_HARBOR: ${{ secrets.HARBOR_USERNAME != '' && secrets.HARBOR_PASSWORD != '' }}
       DO_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
     steps:
       - name: Checkout
@@ -261,29 +260,6 @@ jobs:
             org.opencontainers.image.created=${{ github.event.repository.updated_at || github.event.head_commit.timestamp }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
-      # Harbor push with registry cache (action cache on your own server)
-      - name: Login to Harbor
-        if: env.DO_HARBOR == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-shanghai.aliyuncs.com
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Build and push to Harbor web with registry cache (amd64)
-        if: env.DO_HARBOR == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: web/Dockerfile
-          push: true
-          platforms: linux/amd64
-          tags: |
-            registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:${{ github.sha }}-amd64
-            registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:latest-amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   docker-arm64:
     # Run on push events, or if explicitly requested:
     # - workflow_dispatch: inputs.build_docker == true
@@ -308,7 +284,6 @@ jobs:
       contents: read
       packages: write
     env:
-      DO_HARBOR: ${{ secrets.HARBOR_USERNAME != '' && secrets.HARBOR_PASSWORD != '' }}
       DO_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
     steps:
       - name: Checkout
@@ -396,29 +371,6 @@ jobs:
             org.opencontainers.image.created=${{ github.event.repository.updated_at || github.event.head_commit.timestamp }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
-      # Harbor push with registry cache (action cache on your own server)
-      - name: Login to Harbor
-        if: env.DO_HARBOR == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-shanghai.aliyuncs.com
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Build and push to Harbor web with registry cache (arm64)
-        if: env.DO_HARBOR == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: web/Dockerfile
-          push: true
-          platforms: linux/arm64
-          tags: |
-            registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:${{ github.sha }}-arm64
-            registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:latest-arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   docker-merge:
     runs-on: ubuntu-latest
     needs: [docker-amd64, docker-arm64]
@@ -430,7 +382,6 @@ jobs:
       contents: read
       packages: write
     env:
-      DO_HARBOR: ${{ secrets.HARBOR_USERNAME != '' && secrets.HARBOR_PASSWORD != '' }}
       DO_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
     steps:
       - name: Checkout
@@ -494,25 +445,6 @@ jobs:
               -t "ghcr.io/${{ github.repository_owner }}/oneaifw-web:${t}" \
               "ghcr.io/${{ github.repository_owner }}/oneaifw-web:${t}-amd64" \
               "ghcr.io/${{ github.repository_owner }}/oneaifw-web:${t}-arm64"
-          done
-
-      # Harbor: create multi-arch manifests if enabled
-      - name: Login to Harbor
-        if: env.DO_HARBOR == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: registry.cn-shanghai.aliyuncs.com
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Create multi-arch manifest (web, Harbor)
-        if: env.DO_HARBOR == 'true'
-        run: |
-          for t in "${GITHUB_SHA}" latest; do
-            docker buildx imagetools create \
-              -t "registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:${t}" \
-              "registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:${t}-amd64" \
-              "registry.cn-shanghai.aliyuncs.com/immtranslate/oneaifw:${t}-arm64"
           done
 
       - name: Start fake LLM (echo) on runner
