@@ -110,6 +110,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Generate safe ref tag
         id: ref_tag
         run: echo "tag=$(echo '${{ github.ref_name }}' | sed 's|/|-|g')" >> $GITHUB_OUTPUT
@@ -125,7 +128,7 @@ jobs:
         id: meta_amd64
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/oneaifw
+          images: ghcr.io/${{ env.OWNER_LC }}/oneaifw
           flavor: |
             suffix=-amd64
           tags: |
@@ -158,8 +161,8 @@ jobs:
           build-args: |
             SPACY_PROFILE=minimal
           tags: |
-            ghcr.io/${{ github.repository_owner }}/oneaifw-web:${{ steps.ref_tag.outputs.tag }}-amd64
-            ghcr.io/${{ github.repository_owner }}/oneaifw-web:latest-amd64
+            ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:${{ steps.ref_tag.outputs.tag }}-amd64
+            ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:latest-amd64
           labels: |
             org.opencontainers.image.title=OneAIFW Web
             org.opencontainers.image.description=AI Framework Web Interface
@@ -191,6 +194,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Generate safe ref tag
         id: ref_tag
         run: echo "tag=$(echo '${{ github.ref_name }}' | sed 's|/|-|g')" >> $GITHUB_OUTPUT
@@ -206,7 +212,7 @@ jobs:
         id: meta_arm64
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/oneaifw
+          images: ghcr.io/${{ env.OWNER_LC }}/oneaifw
           flavor: |
             suffix=-arm64
           tags: |
@@ -239,8 +245,8 @@ jobs:
           build-args: |
             SPACY_PROFILE=minimal
           tags: |
-            ghcr.io/${{ github.repository_owner }}/oneaifw-web:${{ steps.ref_tag.outputs.tag }}-arm64
-            ghcr.io/${{ github.repository_owner }}/oneaifw-web:latest-arm64
+            ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:${{ steps.ref_tag.outputs.tag }}-arm64
+            ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:latest-arm64
           labels: |
             org.opencontainers.image.title=OneAIFW Web
             org.opencontainers.image.description=AI Framework Web Interface
@@ -268,6 +274,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Generate safe ref tag
         id: ref_tag
         run: echo "tag=$(echo '${{ github.ref_name }}' | sed 's|/|-|g')" >> $GITHUB_OUTPUT
@@ -283,7 +292,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/oneaifw
+          images: ghcr.io/${{ env.OWNER_LC }}/oneaifw
           tags: |
             type=ref,event=tag
             type=ref,event=branch
@@ -305,9 +314,9 @@ jobs:
           REF_TAG=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
           for t in "${REF_TAG}" latest; do
             docker buildx imagetools create \
-              -t "ghcr.io/${{ github.repository_owner }}/oneaifw-web:${t}" \
-              "ghcr.io/${{ github.repository_owner }}/oneaifw-web:${t}-amd64" \
-              "ghcr.io/${{ github.repository_owner }}/oneaifw-web:${t}-arm64"
+              -t "ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:${t}" \
+              "ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:${t}-amd64" \
+              "ghcr.io/${{ env.OWNER_LC }}/oneaifw-web:${t}-arm64"
           done
 
       - name: Start fake LLM (echo) on runner
@@ -340,7 +349,7 @@ jobs:
             --add-host=host.docker.internal:host-gateway \
             -e AIFW_API_KEY_FILE=/data/aifw/echo.json \
             -v $RUNNER_TEMP/echo-apikey-docker.json:/data/aifw/echo.json \
-            ghcr.io/${{ github.repository_owner }}/oneaifw:latest \
+            ghcr.io/${{ env.OWNER_LC }}/oneaifw:latest \
             sh -lc '
               python -m aifw launch &
               for i in $(seq 1 40); do curl -sf http://127.0.0.1:8844/api/health && break || sleep 0.5; done
@@ -355,7 +364,7 @@ jobs:
             --add-host=host.docker.internal:host-gateway \
             -e AIFW_API_KEY_FILE=/data/aifw/echo.json \
             -v $RUNNER_TEMP/echo-apikey-docker.json:/data/aifw/echo.json \
-            ghcr.io/${{ github.repository_owner }}/oneaifw:latest \
+            ghcr.io/${{ env.OWNER_LC }}/oneaifw:latest \
             sh -lc 'python -m aifw direct_call "$PROMPT"'
 
       - name: Teardown fake LLM
