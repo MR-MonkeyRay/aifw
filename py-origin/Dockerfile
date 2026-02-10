@@ -4,7 +4,8 @@ FROM ${BASE_IMAGE}
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AIFW_WORK_DIR=/data/aifw \
-    XDG_CONFIG_HOME=/data/config
+    XDG_CONFIG_HOME=/data/config \
+    AIFW_LOG_DEST=stdout
 
 WORKDIR /opt/aifw
 

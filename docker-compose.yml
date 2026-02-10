@@ -1,7 +1,39 @@
-version: '3.8'
 services:
-  build: ./
-  ports:
-    - '8844:8844'
-  environment:
-    - API_KEY=changeme-please
+  aifw:
+    image: docker.io/monkeyray/oneaifw:latest
+    ports:
+      - "8844:8844"
+    volumes:
+      - aifw-data:/data/aifw
+    environment:
+      # 上游 LLM 地址（按需启用，至少配置一个）
+      AIFW_UPSTREAM_OPENAI_BASE_URL: https://api.openai.com
+      # AIFW_UPSTREAM_ANTHROPIC_BASE_URL: https://api.anthropic.com
+      # AIFW_UPSTREAM_GEMINI_BASE_URL: https://generativelanguage.googleapis.com
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8844/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  web:
+    image: docker.io/monkeyray/oneaifw-web:latest
+    ports:
+      - "5001:5001"
+    volumes:
+      - aifw-data:/data/aifw
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      aifw:
+        condition: service_healthy
+
+volumes:
+  aifw-data:

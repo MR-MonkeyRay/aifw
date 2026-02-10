@@ -49,6 +49,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     AIFW_WORK_DIR=/data/aifw \
     XDG_CONFIG_HOME=/data/config \
     AIFW_MODELS_BASE=/opt/aifw/ner-models \
+    AIFW_LOG_DEST=stdout \
     PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /opt/aifw
