@@ -21,7 +21,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from .libner import init_env as ner_init_env, build_ner_pipeline
 from langdetect import detect as langdetect_detect
 import os
 import sys
@@ -219,6 +218,8 @@ def init(options: Optional[Dict[str, Any]] = None) -> None:
             "and AIFW_MODELS_BASE is not set); NER models will NOT be loaded. "
             "Only regex-based PII detection will be used."
         )
+    from .libner import init_env as ner_init_env, build_ner_pipeline
+
     ner_init_env({
         "modelsBase": models_base,
     })

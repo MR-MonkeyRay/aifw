@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 import logging
 
-import numpy as np
 import os
 
 logger = logging.getLogger(__name__)
@@ -73,13 +72,15 @@ class TokenClassificationPipelinePy:
         - Compute offsets on baseTextForOffsets using tokens (with optional tokenTransform)
         - Merge contiguous items of same entity
         """
+        if self.ort_session is None or self.tokenizer is None:
+            return []  # disabled pipeline
+
+        import numpy as np
+
         opts = opts or {}
         ignore_labels: List[str] = opts.get("ignore_labels", ["O"])
         offset_text: Optional[str] = opts.get("offsetText")
         token_transform = opts.get("tokenTransform")
-
-        if self.ort_session is None or self.tokenizer is None:
-            return []  # disabled pipeline
 
         enc = self.tokenizer(
             [text],
