@@ -14,10 +14,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 import logging
 
-from transformers import AutoTokenizer
 import numpy as np
 import os
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +58,7 @@ class TokenClassificationPipelinePy:
     It emits items with fields: entity, score, index, word, start, end.
     """
 
-    def __init__(self, ort_session: Optional[Any], tokenizer: Optional[AutoTokenizer], id2label: Dict[int, str], lang_hint: Optional[str] = None):
+    def __init__(self, ort_session: Optional[Any], tokenizer: Optional[Any], id2label: Dict[int, str], lang_hint: Optional[str] = None):
         self.ort_session = ort_session
         self.tokenizer = tokenizer
         self.id2label = id2label
@@ -247,6 +245,7 @@ def build_ner_pipeline(model_id: str, options: Optional[Dict[str, Any]] = None) 
         )
         return _NoopPipe()
     try:
+        from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True, trust_remote_code=False)
     except Exception as e:
         logger.warning("[aifw-py] failed to load tokenizer at %s: %s; NER pipeline disabled.", model_dir, e)
