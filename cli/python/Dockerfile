@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG BASE_IMAGE=python:3.13-slim
+ARG BASE_IMAGE=python:3.12-slim
 
 # ============================================================================
 # Builder stage: install dependencies with uv (10-100x faster than pip)
