@@ -95,7 +95,7 @@ RUN printf '#!/bin/sh\nset -e\n: "${AIFW_WORK_DIR:=/data/aifw}"\nif [ ! -f "${AI
     chmod +x /usr/local/bin/aifw-entrypoint.sh
 
 # Simple CLI wrapper so `aifw` can be used inside the container
-RUN printf '#!/bin/sh\nexec python /opt/aifw/cli/python/aifw.py "$@"\n' > /usr/local/bin/aifw && \
+RUN printf '#!/bin/sh\nexec /opt/venv/bin/python /opt/aifw/cli/python/aifw.py "$@"\n' > /usr/local/bin/aifw && \
     chmod +x /usr/local/bin/aifw
 
 EXPOSE 8844
@@ -107,4 +107,4 @@ USER aifw
 ENTRYPOINT ["/usr/local/bin/aifw-entrypoint.sh"]
 
 WORKDIR /opt/aifw/cli/python
-CMD ["python", "-m", "uvicorn", "services.app.main:app", "--host", "0.0.0.0", "--port", "8844"]
+CMD ["/opt/venv/bin/python", "-m", "uvicorn", "services.app.main:app", "--host", "0.0.0.0", "--port", "8844"]

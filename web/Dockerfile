@@ -111,4 +111,4 @@ USER aifw
 ENTRYPOINT ["/usr/local/bin/aifw-entrypoint.sh"]
 
 WORKDIR /opt/aifw/web
-CMD ["python", "app.py"]
+CMD ["/opt/venv/bin/python", "app.py"]
